@@ -21,7 +21,7 @@ class Mailchimp extends React.Component {
   sendData(url) {
     this.setState({ status: "sending" });
     jsonp(url, { param: "c" }, (err, data) => {
-      if (data.msg.includes("already subscribed")) {
+      if (data.msg.includes("already subscribed") || data.msg.includes("too many recent signup requests")) {
         this.setState({ status: 'duplicate' });
       } else if (err) {
         this.setState({ status: 'error' });
@@ -34,37 +34,44 @@ class Mailchimp extends React.Component {
   }
 
   render() {
-    const { fields, styles, className, buttonClassName } = this.props;
+    const { fields, className, title } = this.props;
     const messages = {
       ...Mailchimp.defaultProps.messages,
       ...this.props.messages
     }
     const { status } = this.state;
+    const messageClass = status ? `msg-alert--${status}` : ''
+
     return (
-      <form onSubmit={this.handleSubmit.bind(this)} className={className}>
-        {fields.map(input =>
-          <input
-            {...input}
-            key={input.name}
-            onChange={({ target }) => this.setState({ [input.name]: target.value })}
-            defaultValue={this.state[input.name]}
-          />
-        )}
-        <button
-          disabled={status === "sending" || status === "success"}
-          type="submit"
-          className={buttonClassName}
-        >
-          {messages.button}
-        </button>
-        <div className='msg-alert'>
-          {status === "sending" && <p style={styles.sendingMsg}>{messages.sending}</p>}
-          {status === "success" && <p style={styles.successMsg}>{messages.success}</p>}
-          {status === "duplicate" && <p style={styles.duplicateMsg}>{messages.duplicate}</p>}
-          {status === "empty" && <p style={styles.errorMsg}>{messages.empty}</p>}
-          {status === "error" && <p style={styles.errorMsg}>{messages.error}</p>}
+      <div className={`${className} ${className}--${status}`}>
+        <form className={`${className}__form`} onSubmit={this.handleSubmit.bind(this)} noValidate>
+          <p className={`${className}__title`}>{title}</p>
+          {fields.map(input =>
+            <input
+              className={`${className}__input`}
+              {...input}
+              key={input.name}
+              onChange={({ target }) => this.setState({ [input.name]: target.value })}
+              defaultValue={this.state[input.name]}
+            />
+          )}
+          {status !== undefined &&
+            <div className='msg-alert'>
+              {status === "sending" && <p>{messages.sending}</p>}
+              {status === "duplicate" && <p>{messages.duplicate}</p>}
+              {status === "empty" && <p>{messages.empty}</p>}
+              {status === "error" && <p>{messages.error}</p>}
+            </div>
+          }
+          <button
+            disabled={status === "sending" || status === "success" }
+            type="submit"
+            className={`${className}__btn`}>{messages.button}</button>
+        </form>
+        <div className='msg-alert msg-alert--success'>
+          <p>{messages.success}</p>
         </div>
-      </form>
+      </div>
     );
   }
 }
@@ -78,28 +85,13 @@ Mailchimp.defaultProps = {
     duplicate: "Too many subscribe attempts for this email address",
     button: "Subscribe!"
   },
-  buttonClassName: "",
-  styles: {
-    sendingMsg: {
-      color: "#0652DD"
-    },
-    successMsg: {
-      color: "#009432"
-    },
-    duplicateMsg: {
-      color: "#EE5A24"
-    },
-    errorMsg: {
-      color: "#ED4C67"
-    }
-  }
+  buttonClassName: ""
 };
 
 Mailchimp.propTypes = {
   action: PropTypes.string,
   messages: PropTypes.object,
   fields: PropTypes.array,
-  styles: PropTypes.object,
   className: PropTypes.string,
   buttonClassName: PropTypes.string
 };
